@@ -1,20 +1,29 @@
-FROM python:3.9
+# Use official Python image
+FROM python:3.12-slim
 
-WORKDIR /app/backend
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-COPY requirements.txt /app/backend
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y gcc default-libmysqlclient-dev pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+# Set workdir
+WORKDIR /app
 
+# Copy requirements first (for caching)
+COPY requirements.txt .
 
-# Install app dependencies
-RUN pip install mysqlclient
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies for mysqlclient
+RUN apt-get update && \
+    apt-get install -y default-libmysqlclient-dev build-essential && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    apt-get clean
 
-COPY . /app/backend
+# Copy app source code
+COPY . .
 
+# Expose port
 EXPOSE 8000
-#RUN python manage.py migrate
-#RUN python manage.py makemigrations
+
+# Run the Django app (development server for now)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
